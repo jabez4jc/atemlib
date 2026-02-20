@@ -166,7 +166,8 @@ If you're using this for anything interesting, I'd love to hear about it.
 
 ## MIT License
 
-Copyright (C) 2016 by Jessica Smith
+Copyright (C) 2014-2016 Jessica Smith
+Copyright (C) 2026 contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ATEM Media Pool List")]
 [assembly: AssemblyDescription("Retrieves a list of media in the media pool of an ATEM Switcher")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Jessica Smith")]
+[assembly: AssemblyCompany("Jessica Smith and contributors")]
 [assembly: AssemblyProduct("ATEM Switcher Library")]
-[assembly: AssemblyCopyright("© Copyright Jessica Smith, 2014")]
+[assembly: AssemblyCopyright("© 2014 Jessica Smith and contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
