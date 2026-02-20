@@ -7,3 +7,4 @@
 /MediaUpload/obj
 /packages
 /*.suo
+/native/atem_bridge/build

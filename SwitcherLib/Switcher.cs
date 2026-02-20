@@ -1,27 +1,18 @@
-﻿using BMDSwitcherAPI;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SwitcherLib
 {
-    public class Switcher
+    public class Switcher : IDisposable
     {
-        protected IBMDSwitcher switcher;
-        protected String deviceAddress;
-        protected bool connected;
+        private readonly string deviceAddress;
+        private bool connected;
+        private IntPtr nativeConnection;
 
         public Switcher(string deviceAddress)
         {
             this.deviceAddress = deviceAddress;
-        }
-
-        public IBMDSwitcher GetSwitcher()
-        {
-            return this.switcher;
         }
 
         public void Connect()
@@ -31,145 +22,174 @@ namespace SwitcherLib
                 return;
             }
 
-            IBMDSwitcherDiscovery switcherDiscovery = new CBMDSwitcherDiscovery();
-            _BMDSwitcherConnectToFailure failReason = 0;
+            const int bufferLength = 1024;
+            IntPtr errorBuffer = Marshal.AllocHGlobal(bufferLength);
+            IntPtr connection = IntPtr.Zero;
 
             try
             {
-                switcherDiscovery.ConnectTo(this.deviceAddress, out this.switcher, out failReason);
+                for (int i = 0; i < bufferLength; i++)
+                {
+                    Marshal.WriteByte(errorBuffer, i, 0);
+                }
+
+                int failReason;
+                int result = NativeBridge.atem_connect(this.deviceAddress, out connection, out failReason, errorBuffer, bufferLength);
+                if (result != 0 || connection == IntPtr.Zero)
+                {
+                    string message = Marshal.PtrToStringAnsi(errorBuffer) ?? "Unable to connect to switcher";
+                    throw new SwitcherLibException(message);
+                }
+
+                this.nativeConnection = connection;
                 this.connected = true;
             }
-            catch (COMException ex)
+            finally
             {
-                switch (failReason)
-                {
-                    case _BMDSwitcherConnectToFailure.bmdSwitcherConnectToFailureIncompatibleFirmware:
-                        throw new SwitcherLibException("Incompatible firmware");
-
-                    case _BMDSwitcherConnectToFailure.bmdSwitcherConnectToFailureNoResponse:
-                        throw new SwitcherLibException(String.Format("No response from {0}", this.deviceAddress));
-
-                    default:
-                        throw new SwitcherLibException(String.Format("Unknown Error: {0}", ex.Message));
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new SwitcherLibException(String.Format("Unable to connect to switcher: {0}", ex.Message));
+                Marshal.FreeHGlobal(errorBuffer);
             }
         }
 
-        public String GetProductName()
+        public string GetProductName()
         {
             this.Connect();
-            String productName;
-            this.switcher.GetProductName(out productName);
-            return productName;
+            const int bufferLength = 512;
+            IntPtr nameBuffer = Marshal.AllocHGlobal(bufferLength);
+            IntPtr errorBuffer = Marshal.AllocHGlobal(bufferLength);
+
+            try
+            {
+                for (int i = 0; i < bufferLength; i++)
+                {
+                    Marshal.WriteByte(nameBuffer, i, 0);
+                    Marshal.WriteByte(errorBuffer, i, 0);
+                }
+
+                int result = NativeBridge.atem_get_product_name(this.nativeConnection, nameBuffer, bufferLength, errorBuffer, bufferLength);
+                if (result != 0)
+                {
+                    string message = Marshal.PtrToStringAnsi(errorBuffer) ?? "Unable to get product name";
+                    throw new SwitcherLibException(message);
+                }
+
+                return NativeBridge.ReadAnsiBuffer(nameBuffer);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(nameBuffer);
+                Marshal.FreeHGlobal(errorBuffer);
+            }
         }
 
         public int GetVideoHeight()
         {
             this.Connect();
-            _BMDSwitcherVideoMode videoMode;
-            this.switcher.GetVideoMode(out videoMode);
-            _BMDSwitcherVideoMode switcherVideoMode = videoMode;
-            switch (switcherVideoMode)
-            {
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode4KHDp2398:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode4KHDp24:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode4KHDp25:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode4KHDp2997:
-                    return 2160;
-
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode720p50:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode720p5994:
-                    return 720;
-
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080i50:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080i5994:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080p50:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080p2398:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080p24:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080p25:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080p2997:
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode1080p5994:
-                    return 1080;
-
-                case _BMDSwitcherVideoMode.bmdSwitcherVideoMode525i5994NTSC:
-                    return 480;
-                default:
-                    throw new SwitcherLibException(String.Format("Unsupported resolution: {0}", videoMode.ToString()));
-            }
+            return this.GetVideoDimensions().height;
         }
 
         public int GetVideoWidth()
         {
-            int videoHeight = this.GetVideoHeight();
-            switch (videoHeight)
-            {
-                case 720:
-                    return 1280;
-
-                case 1080:
-                    return 1920;
-
-                case 2160:
-                    return 3840;
-
-                case 480:
-                    return 720;
-                default:
-                    throw new SwitcherLibException(String.Format("Unsupported video height: {0}", videoHeight.ToString()));
-            }
+            this.Connect();
+            return this.GetVideoDimensions().width;
         }
 
         public IList<MediaStill> GetStills()
         {
-            IList<MediaStill> list = new List<MediaStill>();
+            this.Connect();
+            const int bufferLength = 1024;
+            IntPtr errorBuffer = Marshal.AllocHGlobal(bufferLength);
 
-            IBMDSwitcherMediaPool switcherMediaPool = (IBMDSwitcherMediaPool)this.switcher;
-
-            IBMDSwitcherStills stills;
-            switcherMediaPool.GetStills(out stills);
-
-            uint count;
-            stills.GetCount(out count);
-            for (uint index = 0; index < count; index++)
+            try
             {
-                MediaStill mediaStill = new MediaStill(stills, index);
-                list.Add(mediaStill);
-            }
-
-            IntPtr mediaPlayerIteratorPtr;
-            Guid mediaIteratorIID = typeof(IBMDSwitcherMediaPlayerIterator).GUID;
-            this.switcher.CreateIterator(ref mediaIteratorIID, out mediaPlayerIteratorPtr);
-            IBMDSwitcherMediaPlayerIterator mediaPlayerIterator = (IBMDSwitcherMediaPlayerIterator)Marshal.GetObjectForIUnknown(mediaPlayerIteratorPtr);
-
-            IBMDSwitcherMediaPlayer mediaPlayer;
-            mediaPlayerIterator.Next(out mediaPlayer);
-            int num1 = 1;
-            while (mediaPlayer != null)
-            {
-                _BMDSwitcherMediaPlayerSourceType type;
-                uint index;
-                mediaPlayer.GetSource(out type, out index);
-                if (type == _BMDSwitcherMediaPlayerSourceType.bmdSwitcherMediaPlayerSourceTypeStill)
+                for (int i = 0; i < bufferLength; i++)
                 {
-                    int num2 = (int)index + 1;
-                    foreach (MediaStill mediaStill in list)
-                    {
-                        if (mediaStill.Slot == num2)
-                        {
-                            mediaStill.MediaPlayer = num1;
-                            break;
-                        }
-                    }
+                    Marshal.WriteByte(errorBuffer, i, 0);
                 }
-                num1++;
-                mediaPlayerIterator.Next(out mediaPlayer);
+
+                int count;
+                NativeBridge.NativeStillInfo[] probe = new NativeBridge.NativeStillInfo[1];
+                int result = NativeBridge.atem_get_stills(this.nativeConnection, probe, 0, out count, errorBuffer, bufferLength);
+                if (result != 0)
+                {
+                    throw new SwitcherLibException(Marshal.PtrToStringAnsi(errorBuffer) ?? "Unable to get still count");
+                }
+
+                NativeBridge.NativeStillInfo[] nativeItems = new NativeBridge.NativeStillInfo[count];
+                result = NativeBridge.atem_get_stills(this.nativeConnection, nativeItems, nativeItems.Length, out count, errorBuffer, bufferLength);
+                if (result != 0)
+                {
+                    throw new SwitcherLibException(Marshal.PtrToStringAnsi(errorBuffer) ?? "Unable to enumerate stills");
+                }
+
+                List<MediaStill> items = new List<MediaStill>();
+                for (int index = 0; index < count; index++)
+                {
+                    items.Add(new MediaStill
+                    {
+                        Slot = nativeItems[index].Slot,
+                        MediaPlayer = nativeItems[index].MediaPlayer,
+                        Name = nativeItems[index].Name,
+                        Hash = nativeItems[index].Hash,
+                    });
+                }
+
+                return items;
             }
-            return list;
+            finally
+            {
+                Marshal.FreeHGlobal(errorBuffer);
+            }
         }
 
+        internal IntPtr GetNativeConnection()
+        {
+            this.Connect();
+            return this.nativeConnection;
+        }
+
+        public void Dispose()
+        {
+            if (this.nativeConnection != IntPtr.Zero)
+            {
+                NativeBridge.atem_disconnect(this.nativeConnection);
+                this.nativeConnection = IntPtr.Zero;
+                this.connected = false;
+            }
+
+            GC.SuppressFinalize(this);
+        }
+
+        ~Switcher()
+        {
+            this.Dispose();
+        }
+
+        private (int width, int height) GetVideoDimensions()
+        {
+            const int bufferLength = 512;
+            IntPtr errorBuffer = Marshal.AllocHGlobal(bufferLength);
+
+            try
+            {
+                for (int i = 0; i < bufferLength; i++)
+                {
+                    Marshal.WriteByte(errorBuffer, i, 0);
+                }
+
+                int width;
+                int height;
+                int result = NativeBridge.atem_get_video_dimensions(this.nativeConnection, out width, out height, errorBuffer, bufferLength);
+                if (result != 0)
+                {
+                    throw new SwitcherLibException(Marshal.PtrToStringAnsi(errorBuffer) ?? "Unable to get video dimensions");
+                }
+
+                return (width, height);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(errorBuffer);
+            }
+        }
     }
 }

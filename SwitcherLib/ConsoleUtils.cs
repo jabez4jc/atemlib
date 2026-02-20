@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SwitcherLib
 {
@@ -11,8 +7,9 @@ namespace SwitcherLib
     {
         public static void Version()
         {
-            Version version = Assembly.GetEntryAssembly().GetName().Version;
-            AssemblyTitleAttribute title = (AssemblyTitleAttribute)Assembly.GetEntryAssembly().GetCustomAttribute(typeof(AssemblyTitleAttribute));
+            Assembly entryAssembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+            Version version = entryAssembly.GetName().Version ?? new Version(1, 0, 0, 0);
+            AssemblyTitleAttribute title = entryAssembly.GetCustomAttribute<AssemblyTitleAttribute>() ?? new AssemblyTitleAttribute(entryAssembly.GetName().Name ?? "atemlib");
             Console.Out.WriteLine(String.Format("{0} {1}.{2}.{3}", title.Title, version.Major.ToString(), version.Minor.ToString(), version.Revision.ToString()));
             Console.Out.WriteLine("Jessica Smith <jess@mintopia.net>");
             Console.Out.WriteLine("This software is released under the MIT License");

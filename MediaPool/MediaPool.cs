@@ -2,10 +2,6 @@
 using SwitcherLib;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace MediaPool
@@ -38,7 +34,7 @@ namespace MediaPool
         {
             ConsoleUtils.Version();
             Console.Out.WriteLine();
-            Console.Out.WriteLine("Usage: mediapool.exe [options] <hostname>");
+            Console.Out.WriteLine("Usage: mediapool [options] <hostname>");
             Console.Out.WriteLine("Gets the info for all the media in the media pool for an ATEM switcher");
             Console.Out.WriteLine();
             Console.Out.WriteLine("Arguments:");
@@ -87,7 +83,7 @@ namespace MediaPool
 
                     case "-f":
                     case "--format":
-                        if (args.Length > index)
+                        if (index + 1 < args.Length)
                         {
                             switch (args[index + 1].ToLower())
                             {

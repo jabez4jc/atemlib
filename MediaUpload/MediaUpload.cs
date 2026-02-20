@@ -1,11 +1,7 @@
 ﻿using SwitcherLib;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MediaUpload
 {
@@ -29,7 +25,7 @@ namespace MediaUpload
         {
             ConsoleUtils.Version();
             Console.Out.WriteLine();
-            Console.Out.WriteLine("Usage: mediaupload.exe [options] <hostname> <slot> <filename>");
+            Console.Out.WriteLine("Usage: mediaupload [options] <hostname> <slot> <filename>");
             Console.Out.WriteLine("Uploads an image to a BlackMagic ATEM switcher");
             Console.Out.WriteLine();
             Console.Out.WriteLine("Arguments:");
@@ -85,7 +81,7 @@ namespace MediaUpload
                     case "--name":
                     case "/n":
                     case "/name":
-                        if (index < args.Length)
+                        if (index + 1 < args.Length)
                         {
                             name = args[index + 1];
                             index++;
