@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ATEM Switcher Library")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Jessica Smith and contributors")]
+[assembly: AssemblyCompany("Jessica Smith, Jabez Vettriselvan and contributors")]
 [assembly: AssemblyProduct("ATEM Switcher Library")]
-[assembly: AssemblyCopyright("© 2014 Jessica Smith and contributors")]
+[assembly: AssemblyCopyright("© 2014 Jessica Smith, 2026 Jabez Vettriselvan and contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

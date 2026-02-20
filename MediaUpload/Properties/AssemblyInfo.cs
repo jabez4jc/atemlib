@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ATEM Media Upload")]
 [assembly: AssemblyDescription("Uploads still images to the media library of ATEM switchers")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Jessica Smith and contributors")]
+[assembly: AssemblyCompany("Jessica Smith, Jabez Vettriselvan and contributors")]
 [assembly: AssemblyProduct("ATEM Switcher Library")]
-[assembly: AssemblyCopyright("© 2014 Jessica Smith and contributors")]
+[assembly: AssemblyCopyright("© 2014 Jessica Smith, 2026 Jabez Vettriselvan and contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
